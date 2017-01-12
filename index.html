@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>MineSweeper</title>
+		<style type="text/css">
+			.game {
+				position: relative;
+			}
+
+			.field {
+				position: absolute;
+				width: 24px;
+				height: 24px;
+				background-color: #333;
+				text-align: center;
+				line-height: 24px;
+				color: rgba(0,0,0,0);
+			}
+
+			.field.open {
+				background-color: #888;
+				color: rgba(0,0,0,1);
+			}
+
+			.field.marked {
+				background-color: #0f0; 
+			}
+
+			.field.open.mine {
+				background-color: #f00; 
+			}
+			
+		</style>
+	</head>
+	<body ng-app="game">
+		<h1>Minesweeper</h1>
+		<div ng-controller="GameController" ng-init="init()">
+			<div class="game">
+				<div class="field" 
+					 ng-repeat="field in fields" 
+					 style="left: {{field.x * 25}}px; top: {{field.y * 25}}px" 
+					 ng-class="{'open':field.open,'mine': field.mine, 'marked': field.marked}" 
+					 ng-click="field.open = true"
+					 ng-right-click="field.marked = !field.marked">
+					<span ng-if="field.count != 0">{{field.count}}</span>
+				</div>
+			</div>
+		</div>
+		
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+		<script type="text/javascript">
+
+			var game = angular.module('game',[]);
+
+			var gameController = function($scope){
+				$scope.fields = [];
+
+				// return the field by its position 
+				// return a field without mines for elements out of range
+				$scope.getFieldByPosition = function(x,y){
+					return _.findWhere($scope.fields,{x: x,y: y}) || {
+						mine: false
+					};
+				};
+
+				$scope.init = function(){
+					// generate fields with mines
+					for (var x = 0;x <= 30;x++){
+						for (var y = 0;y <= 15;y++){
+							$scope.fields.push({
+								x: x,
+								y: y,
+								mine: Math.floor((Math.random() * 5) + 1) == 1? true: false,
+								open: false,
+								marked: false,
+								count: 0
+							});
+						}		
+					}
+
+					// calulate numbers for each field
+					$scope.fields.forEach(function(entry){
+						var count = 0;
+
+						if($scope.getFieldByPosition(entry.x - 1,entry.y - 1).mine) count++;
+						if($scope.getFieldByPosition(entry.x - 1,entry.y).mine) count++;
+						if($scope.getFieldByPosition(entry.x - 1,entry.y + 1).mine) count++;
+
+						if($scope.getFieldByPosition(entry.x,entry.y - 1).mine) count++;
+						if($scope.getFieldByPosition(entry.x,entry.y).mine) count++;
+						if($scope.getFieldByPosition(entry.x,entry.y + 1).mine) count++;
+
+						if($scope.getFieldByPosition(entry.x + 1,entry.y - 1).mine) count++;
+						if($scope.getFieldByPosition(entry.x + 1,entry.y).mine) count++;
+						if($scope.getFieldByPosition(entry.x + 1,entry.y + 1).mine) count++;
+
+						entry.count = count;
+					});
+				};
+			};
+
+			game.controller("GameController",gameController);
+			gameController.$inject = ["$scope"];
+
+			game.directive('ngRightClick', function($parse) {
+				return function(scope, element, attrs) {
+					var fn = $parse(attrs.ngRightClick);
+					element.bind('contextmenu', function(event) {
+						scope.$apply(function() {
+							event.preventDefault();
+							fn(scope, {$event:event});
+						});
+					});
+				};
+			});
+		</script>
+	</body>
+</html>
