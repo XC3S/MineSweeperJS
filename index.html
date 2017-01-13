@@ -4,8 +4,14 @@
 		<title>MineSweeper</title>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
 		<style type="text/css">
+			* {
+				box-sizing: border-box;
+			}
+
 			.game {
 				position: relative;
+				width: 100%;
+				background-color: #f00;
 			}
 
 			.game.loading {
@@ -28,31 +34,54 @@
 			}
 
 			.field.marked {
-				background-color: #0f0; 
+				background-image: url('https://cdn0.iconfinder.com/data/icons/typicons-2/24/flag-128.png');
+				background-size: 80%;
+				background-position: center;
+				background-repeat: no-repeat;
+				background-color: #888;
 			}
 
 			.field.open.mine {
-				background-color: #f00; 
+				background-image: url('https://cdn1.iconfinder.com/data/icons/social-messaging-ui-color-shapes-2/128/death1-circle-red-128.png');
+				background-size: 80%;
+				background-position: center;
+				background-repeat: no-repeat;
+				background-color: #333; 
 				color: rgba(0,0,0,0);
+			}
+
+			.row {
+				margin-top: 2rem;
 			}
 
 		</style>
 	</head>
 	<body ng-app="game">
 		<div ng-controller="GameController" ng-init="init()">
-			<h1><span ng-if="!gameOver">Minesweeper</span><span ng-if="gameOver">Game Over ¯\_(ツ)_/¯</span></h1>
-			<button ng-click="init()">restart</button>
-			<div class="game" ng-class="{'loading': loading}">
-				<div class="field" 
-					 ng-repeat="field in fields" 
-					 style="left: {{field.x * 25}}px; top: {{field.y * 25}}px" 
-					 ng-class="{'open':field.open,'mine': field.mine, 'marked': field.marked}" 
-					 ng-click="openField(field)"
-					 ng-right-click="markField(field)">
-					<span ng-if="field.count != 0">{{field.count}}</span>
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12"><h1>Minesweeper</h1></div>
+				</div>
+				<div class="row">
+					<div class="col-xs-12">
+						<button class="btn btn-default" ng-click="init()">Restart</button><br>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-12">
+						<div class="game" ng-class="{'loading': loading}">
+							<div class="field" 
+								 ng-repeat="field in fields" 
+								 style="left: {{field.x * 25}}px; top: {{field.y * 25}}px" 
+								 ng-class="{'open':field.open,'mine': field.mine, 'marked': field.marked}" 
+								 ng-click="openField(field)"
+								 ng-right-click="markField(field)">
+								<b ng-if="field.count != 0">{{field.count}}</b>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
-			
 		</div>
 		
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
@@ -91,6 +120,13 @@
 					// game over if you hit a mine
 					if(field.mine){
 						$scope.gameOver = true;
+						
+						// show all mines
+						_.where($scope.fields,{mine:true,marked: false}).forEach(function(entry){
+							entry.open = true;
+						});
+
+						//@todo: mark wrong flags
 						return
 					}
 
