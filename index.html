@@ -2,9 +2,14 @@
 <html>
 	<head>
 		<title>MineSweeper</title>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
 		<style type="text/css">
 			.game {
 				position: relative;
+			}
+
+			.game.loading {
+				display: none;
 			}
 
 			.field {
@@ -28,34 +33,41 @@
 
 			.field.open.mine {
 				background-color: #f00; 
+				color: rgba(0,0,0,0);
 			}
-			
+
 		</style>
 	</head>
 	<body ng-app="game">
-		<h1>Minesweeper</h1>
 		<div ng-controller="GameController" ng-init="init()">
-			<div class="game">
+			<h1><span ng-if="!gameOver">Minesweeper</span><span ng-if="gameOver">Game Over ¯\_(ツ)_/¯</span></h1>
+			<button ng-click="init()">restart</button>
+			<div class="game" ng-class="{'loading': loading}">
 				<div class="field" 
 					 ng-repeat="field in fields" 
 					 style="left: {{field.x * 25}}px; top: {{field.y * 25}}px" 
 					 ng-class="{'open':field.open,'mine': field.mine, 'marked': field.marked}" 
-					 ng-click="field.open = true"
-					 ng-right-click="field.marked = !field.marked">
+					 ng-click="openField(field)"
+					 ng-right-click="markField(field)">
 					<span ng-if="field.count != 0">{{field.count}}</span>
 				</div>
 			</div>
+			
 		</div>
 		
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
 		<script type="text/javascript">
 
 			var game = angular.module('game',[]);
 
-			var gameController = function($scope){
+			var gameController = function($scope,$timeout){
 				$scope.fields = [];
+				$scope.loading = true;
+				$scope.gameOver = false;
 
 				// return the field by its position 
 				// return a field without mines for elements out of range
@@ -65,44 +77,89 @@
 					};
 				};
 
-				$scope.init = function(){
-					// generate fields with mines
-					for (var x = 0;x <= 30;x++){
-						for (var y = 0;y <= 15;y++){
-							$scope.fields.push({
-								x: x,
-								y: y,
-								mine: Math.floor((Math.random() * 5) + 1) == 1? true: false,
-								open: false,
-								marked: false,
-								count: 0
-							});
-						}		
+				$scope.markField = function(field){
+					if(field.open || $scope.gameOver) return;
+					field.marked = !field.marked;
+				};
+
+				$scope.openField = function(field){
+					if(field.open || $scope.gameOver) return;		
+
+					// toggle open state 
+					field.open = true;
+
+					// game over if you hit a mine
+					if(field.mine){
+						$scope.gameOver = true;
+						return
 					}
 
-					// calulate numbers for each field
-					$scope.fields.forEach(function(entry){
-						var count = 0;
+					// open neighbor fields if count is 0
+					if(field.count == 0){
+						$scope.openField($scope.getFieldByPosition(field.x - 1,field.y - 1));
+						$scope.openField($scope.getFieldByPosition(field.x - 1,field.y));
+						$scope.openField($scope.getFieldByPosition(field.x - 1,field.y + 1));
 
-						if($scope.getFieldByPosition(entry.x - 1,entry.y - 1).mine) count++;
-						if($scope.getFieldByPosition(entry.x - 1,entry.y).mine) count++;
-						if($scope.getFieldByPosition(entry.x - 1,entry.y + 1).mine) count++;
+						$scope.openField($scope.getFieldByPosition(field.x,field.y - 1));
+						$scope.openField($scope.getFieldByPosition(field.x,field.y + 1));
 
-						if($scope.getFieldByPosition(entry.x,entry.y - 1).mine) count++;
-						if($scope.getFieldByPosition(entry.x,entry.y).mine) count++;
-						if($scope.getFieldByPosition(entry.x,entry.y + 1).mine) count++;
+						$scope.openField($scope.getFieldByPosition(field.x + 1,field.y - 1));
+						$scope.openField($scope.getFieldByPosition(field.x + 1,field.y));
+						$scope.openField($scope.getFieldByPosition(field.x + 1,field.y + 1));
+					}
 
-						if($scope.getFieldByPosition(entry.x + 1,entry.y - 1).mine) count++;
-						if($scope.getFieldByPosition(entry.x + 1,entry.y).mine) count++;
-						if($scope.getFieldByPosition(entry.x + 1,entry.y + 1).mine) count++;
+				};
 
-						entry.count = count;
+				$scope.init = function(){
+					$scope.fields = [];
+					$scope.loading = true;
+					$scope.gameOver = false;
+					
+					$timeout(function(){
+						// generate fields with mines
+						for (var x = 0;x <= 20;x++){
+							for (var y = 0;y <= 15;y++){
+								$scope.fields.push({
+									x: x,
+									y: y,
+									mine: Math.floor((Math.random() * 5) + 1) == 1? true: false,
+									open: false,
+									marked: false,
+									count: 0
+								});
+							}		
+						}
+
+						// calulate numbers for each field
+						$scope.fields.forEach(function(entry){
+							var count = 0;
+
+							if($scope.getFieldByPosition(entry.x - 1,entry.y - 1).mine) count++;
+							if($scope.getFieldByPosition(entry.x - 1,entry.y).mine) count++;
+							if($scope.getFieldByPosition(entry.x - 1,entry.y + 1).mine) count++;
+
+							if($scope.getFieldByPosition(entry.x,entry.y - 1).mine) count++;
+							if($scope.getFieldByPosition(entry.x,entry.y).mine) count++;
+							if($scope.getFieldByPosition(entry.x,entry.y + 1).mine) count++;
+
+							if($scope.getFieldByPosition(entry.x + 1,entry.y - 1).mine) count++;
+							if($scope.getFieldByPosition(entry.x + 1,entry.y).mine) count++;
+							if($scope.getFieldByPosition(entry.x + 1,entry.y + 1).mine) count++;
+
+							entry.count = count;
+						});
+
+						// generate start field
+						var startField = _.first(_.shuffle(_.where($scope.fields,{count: 0})));
+						$scope.openField(startField);
+
+						$scope.loading = false;	
 					});
 				};
 			};
 
 			game.controller("GameController",gameController);
-			gameController.$inject = ["$scope"];
+			gameController.$inject = ["$scope","$timeout"];
 
 			game.directive('ngRightClick', function($parse) {
 				return function(scope, element, attrs) {
